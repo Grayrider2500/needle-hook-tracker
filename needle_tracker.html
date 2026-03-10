@@ -505,7 +505,7 @@
 
         <div class="form-row">
           <label for="brand">Brand</label>
-          <input id="brand" list="datalist-brand" placeholder="e.g. Addi, ChiaoGoo…" autocomplete="off">
+          <input id="brand" list="datalist-brand" placeholder="e.g. Addi, ChiaoGoo…">
           <datalist id="datalist-brand">
             <option>Addi</option>
             <option>Boye</option>
@@ -1168,6 +1168,18 @@
         const all      = InventoryDB.getAll();
         const filtered = FilterController.apply(all);
         ListRenderer.render(filtered, all.length);
+
+        // Keep brand datalist in sync with any brands already in inventory
+        const dl = document.getElementById('datalist-brand');
+        const existing = new Set([...dl.options].map(o => o.value.toLowerCase()));
+        all.forEach(r => {
+          if (r.brand && !existing.has(r.brand.toLowerCase())) {
+            const opt = document.createElement('option');
+            opt.value = r.brand;
+            dl.appendChild(opt);
+            existing.add(r.brand.toLowerCase());
+          }
+        });
 
         const needles = all.filter(r => r.toolType === 'knitting_needle').length;
         const hooks   = all.filter(r => r.toolType === 'crochet_hook').length;
