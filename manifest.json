@@ -1,0 +1,17 @@
+{
+  "name": "My Needle & Hook Stash",
+  "short_name": "Needle Stash",
+  "description": "Track your knitting needles and crochet hooks",
+  "start_url": "./needle_tracker.html",
+  "display": "standalone",
+  "background_color": "#F7F4FF",
+  "theme_color": "#512da0",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -5,15 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Needle Stash">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.svg">
   <title>My Needle &amp; Hook Stash</title>
   <style>
     :root {
-      --color-bg:           #FBF7F0;
+      --color-bg:           #F7F4FF;
       --color-surface:      #FFFFFF;
-      --color-surface-alt:  #F5EFE6;
-      --color-border:       #DDD0BC;
-      --color-primary:      #A0522D;
-      --color-primary-dark: #7B3F22;
+      --color-surface-alt:  #c6b7ea;
+      --color-border:       #8e7ae7;
+      --color-primary:      #512da0;
+      --color-primary-dark: #835ab9;
       --color-primary-text: #FFFFFF;
       --color-accent:       #6B8E6B;
       --color-accent-dark:  #4F6B4F;
@@ -260,6 +263,12 @@
       color: var(--color-primary);
     }
     #result-count { font-size: 0.8rem; color: var(--color-text-muted); }
+    .inventory-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
 
     /* ── Table (desktop) ──────────────────────────────────── */
     .table-wrap {
@@ -500,8 +509,13 @@
     <section id="inventory-section" aria-label="Your inventory">
       <div id="inventory-header">
         <h2>Your Stash</h2>
-        <span id="result-count"></span>
+        <div class="inventory-header-actions">
+          <span id="result-count"></span>
+          <button type="button" id="export-btn" class="btn btn--ghost btn--small">&#8595; Export</button>
+          <button type="button" id="import-btn" class="btn btn--ghost btn--small">&#8593; Import</button>
+        </div>
       </div>
+      <input type="file" id="import-file" accept=".json" hidden>
 
       <!-- Desktop table -->
       <div class="table-wrap desktop-only">
@@ -692,6 +706,15 @@
             r.size     === size     &&
             r.id       !== excludeId
           );
+        },
+        exportAll() {
+          return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), records: load() }, null, 2);
+        },
+        importAll(jsonStr) {
+          const data = JSON.parse(jsonStr);
+          const records = Array.isArray(data) ? data : (Array.isArray(data.records) ? data.records : null);
+          if (!records) throw new Error('Invalid format');
+          save(records);
         },
       };
     })();
@@ -1062,11 +1085,54 @@
           App.render();
         });
 
+        // Export
+        document.getElementById('export-btn').addEventListener('click', () => {
+          const json = InventoryDB.exportAll();
+          const blob = new Blob([json], { type: 'application/json' });
+          const url  = URL.createObjectURL(blob);
+          const a    = document.createElement('a');
+          a.href     = url;
+          a.download = `needle-stash-${new Date().toISOString().slice(0, 10)}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          Toast.show('Inventory exported');
+        });
+
+        // Import
+        const importFileEl = document.getElementById('import-file');
+        document.getElementById('import-btn').addEventListener('click', () => importFileEl.click());
+        importFileEl.addEventListener('change', () => {
+          const file = importFileEl.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = e => {
+            try {
+              if (!confirm(`Import will replace your current inventory with data from "${file.name}". Continue?`)) {
+                importFileEl.value = '';
+                return;
+              }
+              InventoryDB.importAll(e.target.result);
+              importFileEl.value = '';
+              Toast.show('Inventory imported');
+              App.render();
+            } catch {
+              alert('Could not read that file. Make sure it is a valid inventory export.');
+              importFileEl.value = '';
+            }
+          };
+          reader.readAsText(file);
+        });
+
         this.render();
       },
     };
 
     document.addEventListener('DOMContentLoaded', () => App.init());
+
+    // Register service worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
 
     // Re-render if another tab updates storage
     window.addEventListener('storage', e => {
