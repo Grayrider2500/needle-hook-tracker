@@ -1,4 +1,4 @@
-const CACHE = 'needle-stash-v1';
+const CACHE = 'needle-stash-v2';
 const ASSETS = [
   './needle_tracker.html',
   './manifest.json',
