@@ -428,6 +428,30 @@
     }
     .badge--needle { background: rgba(160,82,45,0.12); color: var(--color-primary); }
     .badge--hook   { background: rgba(107,142,107,0.15); color: var(--color-accent-dark); }
+    .badge--loan   { background: rgba(192,57,43,0.12);  color: var(--color-danger); }
+
+    /* ── Checkbox row ─────────────────────────────────────── */
+    .form-row--checkbox {
+      flex-direction: row;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.35rem 0;
+    }
+    .form-row--checkbox input[type="checkbox"] {
+      width: 1.15rem;
+      height: 1.15rem;
+      accent-color: var(--color-primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .form-row--checkbox label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--color-text);
+      text-transform: none;
+      letter-spacing: normal;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -524,6 +548,11 @@
           <textarea id="notes" rows="2" placeholder="Material, color tag, storage location…"></textarea>
         </div>
 
+        <div class="form-row form-row--full form-row--checkbox">
+          <input type="checkbox" id="on-loan">
+          <label for="on-loan">On Loan</label>
+        </div>
+
         <div id="dup-warning" class="form-row--full">
           ⚠ You already have an entry for this type and size. Consider editing that record instead.
         </div>
@@ -545,6 +574,11 @@
         </select>
         <select id="filter-subtype" aria-label="Filter by sub-type">
           <option value="">All Sub-types</option>
+        </select>
+        <select id="filter-loan" aria-label="Filter by loan status">
+          <option value="">All Items</option>
+          <option value="on_loan">On Loan</option>
+          <option value="available">Available</option>
         </select>
         <input type="search" id="filter-search" placeholder="Search size, brand, notes…" aria-label="Search">
         <button type="button" id="clear-filters-btn" class="btn btn--ghost btn--small">Clear</button>
@@ -574,6 +608,7 @@
               <th>Brand</th>
               <th>Length</th>
               <th>Qty</th>
+              <th>Status</th>
               <th>Notes</th>
               <th>Actions</th>
             </tr>
@@ -808,6 +843,7 @@
       const brandEl     = document.getElementById('brand');
       const lengthEl    = document.getElementById('length');
       const notesEl     = document.getElementById('notes');
+      const onLoanEl    = document.getElementById('on-loan');
       const submitBtn   = document.getElementById('submit-btn');
       const cancelBtn   = document.getElementById('cancel-btn');
       const formTitle   = document.getElementById('form-title');
@@ -906,6 +942,7 @@
         brandEl.value         = rec.brand  || '';
         lengthEl.value        = rec.length || '';
         notesEl.value         = rec.notes  || '';
+        onLoanEl.checked      = !!rec.onLoan;
         dupWarn.style.display = 'none';
         document.getElementById('form-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -934,6 +971,7 @@
               brand:    brandEl.value.trim(),
               length:   lengthEl.value.trim(),
               notes:    notesEl.value.trim(),
+              onLoan:   onLoanEl.checked,
             };
             if (rec.id) {
               InventoryDB.update(rec);
@@ -956,6 +994,7 @@
     const FilterController = (() => {
       const typeEl    = document.getElementById('filter-type');
       const subtypeEl = document.getElementById('filter-subtype');
+      const loanEl    = document.getElementById('filter-loan');
       const searchEl  = document.getElementById('filter-search');
       const clearBtn  = document.getElementById('clear-filters-btn');
 
@@ -982,12 +1021,16 @@
       function apply(records) {
         const type    = typeEl.value;
         const subtype = subtypeEl.value;
+        const loan    = loanEl.value;
         const search  = searchEl.value.trim().toLowerCase();
         return records.filter(r => {
-          if (type    && r.toolType !== type)   return false;
-          if (subtype && r.subType  !== subtype) return false;
+          if (type    && r.toolType !== type)    return false;
+          if (subtype && r.subType  !== subtype)  return false;
+          if (loan === 'on_loan'  && !r.onLoan)   return false;
+          if (loan === 'available' && r.onLoan)   return false;
           if (search) {
-            const haystack = [r.size, r.subType, r.brand, r.length, r.notes]
+            const loanText = r.onLoan ? 'on loan' : '';
+            const haystack = [r.size, r.subType, r.brand, r.length, r.notes, loanText]
               .map(v => v || '').join(' ').toLowerCase();
             if (!haystack.includes(search)) return false;
           }
@@ -999,9 +1042,11 @@
         init() {
           typeEl.addEventListener('change', () => { updateSubtypeFilter(); App.render(); });
           subtypeEl.addEventListener('change', () => App.render());
+          loanEl.addEventListener('change', () => App.render());
           searchEl.addEventListener('input', () => App.render());
           clearBtn.addEventListener('click', () => {
-            typeEl.value = '';
+            typeEl.value  = '';
+            loanEl.value  = '';
             searchEl.value = '';
             updateSubtypeFilter();
             App.render();
@@ -1052,6 +1097,7 @@
             <td>${dash(r.brand)}</td>
             <td>${dash(r.length)}</td>
             <td>${r.quantity}</td>
+            <td>${r.onLoan ? '<span class="badge badge--loan">On Loan</span>' : '<em style="opacity:.5">\u2014</em>'}</td>
             <td class="td-notes" title="${escHtml(r.notes || '')}">${r.notes ? escHtml(r.notes) : '<em style="opacity:.5">\u2014</em>'}</td>
             <td class="td-actions">${actionButtons(r.id)}</td>`;
           tableBody.appendChild(tr);
@@ -1081,6 +1127,7 @@
               ${r.brand  ? `<div class="card-detail"><strong>Brand:</strong> ${escHtml(r.brand)}</div>` : ''}
               ${r.length ? `<div class="card-detail"><strong>Length:</strong> ${escHtml(r.length)}</div>` : ''}
             </div>
+            ${r.onLoan ? '<div style="margin-top:0.45rem"><span class="badge badge--loan">On Loan</span></div>' : ''}
             ${r.notes ? `<div class="card-notes">${escHtml(r.notes)}</div>` : ''}`;
           cardList.appendChild(li);
         });
