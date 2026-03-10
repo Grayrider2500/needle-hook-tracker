@@ -116,6 +116,7 @@
     }
     .form-row select,
     .form-row input[type="number"],
+    .form-row input[list],
     .form-row textarea {
       font-size: 16px; /* prevent iOS zoom */
       font-family: inherit;
@@ -143,7 +144,12 @@
       border-color: var(--color-primary);
       box-shadow: 0 0 0 3px rgba(160,82,45,0.15);
     }
-    .form-row select:disabled { background-color: var(--color-surface-alt); color: var(--color-text-muted); cursor: not-allowed; }
+    .form-row select:disabled,
+    .form-row input[list]:disabled {
+      background-color: var(--color-surface-alt);
+      color: var(--color-text-muted);
+      cursor: not-allowed;
+    }
     .form-row textarea { resize: vertical; min-height: 60px; }
     .field-error {
       font-size: 0.75rem;
@@ -303,7 +309,7 @@
       vertical-align: middle;
     }
     .td-notes {
-      max-width: 200px;
+      max-width: 160px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -453,18 +459,18 @@
 
         <div class="form-row">
           <label for="sub-type">Sub-type</label>
-          <select id="sub-type" required disabled>
-            <option value="">Select tool type first</option>
-          </select>
-          <span class="field-error">Please select a sub-type.</span>
+          <input id="sub-type" list="datalist-sub-type" placeholder="Select tool type first"
+                 autocomplete="off" disabled required>
+          <datalist id="datalist-sub-type"></datalist>
+          <span class="field-error">Please enter a sub-type.</span>
         </div>
 
         <div class="form-row">
           <label for="size">Size</label>
-          <select id="size" required disabled>
-            <option value="">Select tool type first</option>
-          </select>
-          <span class="field-error">Please select a size.</span>
+          <input id="size" list="datalist-size" placeholder="Select tool type first"
+                 autocomplete="off" disabled required>
+          <datalist id="datalist-size"></datalist>
+          <span class="field-error">Please enter a size.</span>
         </div>
 
         <div class="form-row">
@@ -473,9 +479,49 @@
           <span class="field-error">Please enter a quantity between 1 and 99.</span>
         </div>
 
+        <div class="form-row">
+          <label for="brand">Brand</label>
+          <input id="brand" list="datalist-brand" placeholder="e.g. Addi, ChiaoGoo…" autocomplete="off">
+          <datalist id="datalist-brand">
+            <option>Addi</option>
+            <option>Boye</option>
+            <option>ChiaoGoo</option>
+            <option>Clover</option>
+            <option>Denise</option>
+            <option>HiyaHiya</option>
+            <option>KnitPicks</option>
+            <option>Knitter's Pride</option>
+            <option>Lykke</option>
+            <option>Susan Bates</option>
+            <option>Tulip</option>
+          </datalist>
+        </div>
+
+        <div class="form-row">
+          <label for="length">Length</label>
+          <input id="length" list="datalist-length" placeholder="e.g. 9 in, 24 in…" autocomplete="off">
+          <datalist id="datalist-length">
+            <option>4 in</option>
+            <option>5 in</option>
+            <option>6 in</option>
+            <option>7 in</option>
+            <option>8 in</option>
+            <option>9 in</option>
+            <option>10 in</option>
+            <option>12 in</option>
+            <option>14 in</option>
+            <option>16 in</option>
+            <option>24 in</option>
+            <option>32 in</option>
+            <option>40 in</option>
+            <option>47 in</option>
+            <option>60 in</option>
+          </datalist>
+        </div>
+
         <div class="form-row form-row--full">
           <label for="notes">Notes</label>
-          <textarea id="notes" rows="2" placeholder="Brand, material, color tag, storage location…"></textarea>
+          <textarea id="notes" rows="2" placeholder="Material, color tag, storage location…"></textarea>
         </div>
 
         <div id="dup-warning" class="form-row--full">
@@ -500,7 +546,7 @@
         <select id="filter-subtype" aria-label="Filter by sub-type">
           <option value="">All Sub-types</option>
         </select>
-        <input type="search" id="filter-search" placeholder="Search size or notes…" aria-label="Search">
+        <input type="search" id="filter-search" placeholder="Search size, brand, notes…" aria-label="Search">
         <button type="button" id="clear-filters-btn" class="btn btn--ghost btn--small">Clear</button>
       </div>
     </section>
@@ -525,6 +571,8 @@
               <th>Type</th>
               <th>Sub-type</th>
               <th>Size</th>
+              <th>Brand</th>
+              <th>Length</th>
               <th>Qty</th>
               <th>Notes</th>
               <th>Actions</th>
@@ -635,6 +683,20 @@
       crochet_hook:    'Crochet Hook',
     };
 
+    // ── Shared helpers ─────────────────────────────────────────────────────────
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Returns display label for a stored subType value (handles both old internal
+    // values like 'straight' and new label-based values like 'Straight').
+    function subTypeLabel(toolType, subType) {
+      const list = SUB_TYPES[toolType] || [];
+      const found = list.find(s => s.value === subType);
+      return found ? found.label : (subType || '');
+    }
+
     // ── InventoryDB ────────────────────────────────────────────────────────────
 
     const InventoryDB = (() => {
@@ -743,6 +805,8 @@
       const subTypeEl   = document.getElementById('sub-type');
       const sizeEl      = document.getElementById('size');
       const quantityEl  = document.getElementById('quantity');
+      const brandEl     = document.getElementById('brand');
+      const lengthEl    = document.getElementById('length');
       const notesEl     = document.getElementById('notes');
       const submitBtn   = document.getElementById('submit-btn');
       const cancelBtn   = document.getElementById('cancel-btn');
@@ -750,27 +814,39 @@
       const dupWarn     = document.getElementById('dup-warning');
 
       function populateSubTypes(toolType) {
-        subTypeEl.innerHTML = '<option value="">Select sub-type…</option>';
-        if (!toolType) { subTypeEl.disabled = true; return; }
-        (SUB_TYPES[toolType] || []).forEach(({ value, label }) => {
+        const dl = document.getElementById('datalist-sub-type');
+        dl.innerHTML = '';
+        subTypeEl.value = '';
+        if (!toolType) {
+          subTypeEl.disabled = true;
+          subTypeEl.placeholder = 'Select tool type first';
+          return;
+        }
+        (SUB_TYPES[toolType] || []).forEach(({ label }) => {
           const o = document.createElement('option');
-          o.value = value;
-          o.textContent = label;
-          subTypeEl.appendChild(o);
+          o.value = label;
+          dl.appendChild(o);
         });
         subTypeEl.disabled = false;
+        subTypeEl.placeholder = 'Type or select…';
       }
 
       function populateSizes(toolType) {
-        sizeEl.innerHTML = '<option value="">Select size…</option>';
-        if (!toolType) { sizeEl.disabled = true; return; }
+        const dl = document.getElementById('datalist-size');
+        dl.innerHTML = '';
+        sizeEl.value = '';
+        if (!toolType) {
+          sizeEl.disabled = true;
+          sizeEl.placeholder = 'Select tool type first';
+          return;
+        }
         (SIZES[toolType] || []).forEach(s => {
           const o = document.createElement('option');
           o.value = s;
-          o.textContent = s;
-          sizeEl.appendChild(o);
+          dl.appendChild(o);
         });
         sizeEl.disabled = false;
+        sizeEl.placeholder = 'Type or select…';
       }
 
       function setError(el, hasError) {
@@ -779,31 +855,36 @@
 
       function validate() {
         let valid = true;
-        if (!toolTypeEl.value) { setError(toolTypeEl, true); valid = false; } else setError(toolTypeEl, false);
-        if (!subTypeEl.value)  { setError(subTypeEl, true);  valid = false; } else setError(subTypeEl, false);
-        if (!sizeEl.value)     { setError(sizeEl, true);     valid = false; } else setError(sizeEl, false);
+        if (!toolTypeEl.value)          { setError(toolTypeEl, true); valid = false; } else setError(toolTypeEl, false);
+        if (!subTypeEl.value.trim())    { setError(subTypeEl, true);  valid = false; } else setError(subTypeEl, false);
+        if (!sizeEl.value.trim())       { setError(sizeEl, true);     valid = false; } else setError(sizeEl, false);
         const qty = parseInt(quantityEl.value, 10);
         if (isNaN(qty) || qty < 1 || qty > 99) { setError(quantityEl, true); valid = false; } else setError(quantityEl, false);
         return valid;
       }
 
       function checkDuplicate() {
-        if (!toolTypeEl.value || !subTypeEl.value || !sizeEl.value) { dupWarn.style.display = 'none'; return; }
-        const isDup = InventoryDB.hasDuplicate(toolTypeEl.value, subTypeEl.value, sizeEl.value, editIdEl.value || null);
+        if (!toolTypeEl.value || !subTypeEl.value.trim() || !sizeEl.value.trim()) {
+          dupWarn.style.display = 'none';
+          return;
+        }
+        const isDup = InventoryDB.hasDuplicate(toolTypeEl.value, subTypeEl.value.trim(), sizeEl.value.trim(), editIdEl.value || null);
         dupWarn.style.display = isDup ? 'block' : 'none';
       }
 
       function toAddMode() {
-        editIdEl.value      = '';
+        editIdEl.value        = '';
         formTitle.textContent = 'Add to Stash';
         submitBtn.textContent = 'Add to Stash';
-        cancelBtn.hidden    = true;
+        cancelBtn.hidden      = true;
         dupWarn.style.display = 'none';
         form.reset();
-        subTypeEl.disabled = true;
-        sizeEl.disabled    = true;
-        subTypeEl.innerHTML = '<option value="">Select tool type first</option>';
-        sizeEl.innerHTML    = '<option value="">Select tool type first</option>';
+        subTypeEl.disabled    = true;
+        subTypeEl.placeholder = 'Select tool type first';
+        sizeEl.disabled       = true;
+        sizeEl.placeholder    = 'Select tool type first';
+        document.getElementById('datalist-sub-type').innerHTML = '';
+        document.getElementById('datalist-size').innerHTML = '';
         ['tool-type','sub-type','size','quantity'].forEach(id => {
           document.getElementById(id).closest('.form-row').classList.remove('has-error');
         });
@@ -816,11 +897,15 @@
         cancelBtn.hidden      = false;
         toolTypeEl.value      = rec.toolType;
         populateSubTypes(rec.toolType);
-        subTypeEl.value       = rec.subType;
+        // Handle old internal-value format ('straight') and new label format ('Straight')
+        const subTypeObj = (SUB_TYPES[rec.toolType] || []).find(s => s.value === rec.subType);
+        subTypeEl.value       = subTypeObj ? subTypeObj.label : (rec.subType || '');
         populateSizes(rec.toolType);
-        sizeEl.value          = rec.size;
+        sizeEl.value          = rec.size || '';
         quantityEl.value      = rec.quantity;
-        notesEl.value         = rec.notes;
+        brandEl.value         = rec.brand  || '';
+        lengthEl.value        = rec.length || '';
+        notesEl.value         = rec.notes  || '';
         dupWarn.style.display = 'none';
         document.getElementById('form-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -832,12 +917,10 @@
             populateSizes(toolTypeEl.value);
             checkDuplicate();
           });
-          subTypeEl.addEventListener('change', checkDuplicate);
-          sizeEl.addEventListener('change', checkDuplicate);
+          subTypeEl.addEventListener('input', checkDuplicate);
+          sizeEl.addEventListener('input', checkDuplicate);
 
-          cancelBtn.addEventListener('click', () => {
-            toAddMode();
-          });
+          cancelBtn.addEventListener('click', () => toAddMode());
 
           form.addEventListener('submit', e => {
             e.preventDefault();
@@ -845,9 +928,11 @@
             const rec = {
               id:       editIdEl.value || null,
               toolType: toolTypeEl.value,
-              subType:  subTypeEl.value,
-              size:     sizeEl.value,
+              subType:  subTypeEl.value.trim(),
+              size:     sizeEl.value.trim(),
               quantity: parseInt(quantityEl.value, 10),
+              brand:    brandEl.value.trim(),
+              length:   lengthEl.value.trim(),
               notes:    notesEl.value.trim(),
             };
             if (rec.id) {
@@ -874,34 +959,36 @@
       const searchEl  = document.getElementById('filter-search');
       const clearBtn  = document.getElementById('clear-filters-btn');
 
-      function updateSubtypeOptions() {
-        const t = typeEl.value;
+      // Populate sub-type filter from actual inventory data so custom values appear.
+      function updateSubtypeFilter() {
+        const t    = typeEl.value;
+        const prev = subtypeEl.value;
         subtypeEl.innerHTML = '<option value="">All Sub-types</option>';
-        if (t && SUB_TYPES[t]) {
-          SUB_TYPES[t].forEach(({ value, label }) => {
-            const o = document.createElement('option');
-            o.value = value;
-            o.textContent = label;
-            subtypeEl.appendChild(o);
-          });
-        }
-      }
-
-      function getFilters() {
-        return {
-          type:    typeEl.value,
-          subtype: subtypeEl.value,
-          search:  searchEl.value.trim().toLowerCase(),
-        };
+        const subtypes = [...new Set(
+          InventoryDB.getAll()
+            .filter(r => !t || r.toolType === t)
+            .map(r => r.subType)
+            .filter(Boolean)
+        )].sort();
+        subtypes.forEach(s => {
+          const o = document.createElement('option');
+          o.value = s;
+          o.textContent = s;
+          subtypeEl.appendChild(o);
+        });
+        if (prev && subtypes.includes(prev)) subtypeEl.value = prev;
       }
 
       function apply(records) {
-        const { type, subtype, search } = getFilters();
+        const type    = typeEl.value;
+        const subtype = subtypeEl.value;
+        const search  = searchEl.value.trim().toLowerCase();
         return records.filter(r => {
-          if (type    && r.toolType !== type)    return false;
-          if (subtype && r.subType  !== subtype)  return false;
+          if (type    && r.toolType !== type)   return false;
+          if (subtype && r.subType  !== subtype) return false;
           if (search) {
-            const haystack = (r.size + ' ' + r.notes).toLowerCase();
+            const haystack = [r.size, r.subType, r.brand, r.length, r.notes]
+              .map(v => v || '').join(' ').toLowerCase();
             if (!haystack.includes(search)) return false;
           }
           return true;
@@ -910,36 +997,32 @@
 
       return {
         init() {
-          typeEl.addEventListener('change', () => { updateSubtypeOptions(); App.render(); });
+          typeEl.addEventListener('change', () => { updateSubtypeFilter(); App.render(); });
           subtypeEl.addEventListener('change', () => App.render());
           searchEl.addEventListener('input', () => App.render());
           clearBtn.addEventListener('click', () => {
             typeEl.value = '';
-            subtypeEl.innerHTML = '<option value="">All Sub-types</option>';
             searchEl.value = '';
+            updateSubtypeFilter();
             App.render();
           });
         },
         apply,
+        updateSubtypeFilter,
       };
     })();
 
     // ── ListRenderer ───────────────────────────────────────────────────────────
 
     const ListRenderer = (() => {
-      const tableBody  = document.getElementById('table-body');
-      const cardList   = document.getElementById('card-list');
-      const emptyState = document.getElementById('empty-state');
-      const emptyMsg   = document.getElementById('empty-msg');
+      const tableBody   = document.getElementById('table-body');
+      const cardList    = document.getElementById('card-list');
+      const emptyState  = document.getElementById('empty-state');
+      const emptyMsg    = document.getElementById('empty-msg');
       const resultCount = document.getElementById('result-count');
 
-      function subTypeLabel(toolType, subType) {
-        const list = SUB_TYPES[toolType] || [];
-        return (list.find(s => s.value === subType) || { label: subType }).label;
-      }
-
-      function escHtml(str) {
-        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      function dash(val) {
+        return val ? escHtml(val) : '<em style="opacity:.5">\u2014</em>';
       }
 
       function actionButtons(id) {
@@ -966,8 +1049,10 @@
             </td>
             <td>${escHtml(subTypeLabel(r.toolType, r.subType))}</td>
             <td><strong>${escHtml(r.size)}</strong></td>
+            <td>${dash(r.brand)}</td>
+            <td>${dash(r.length)}</td>
             <td>${r.quantity}</td>
-            <td class="td-notes" title="${escHtml(r.notes)}">${r.notes ? escHtml(r.notes) : '<em style="opacity:.5">\u2014</em>'}</td>
+            <td class="td-notes" title="${escHtml(r.notes || '')}">${r.notes ? escHtml(r.notes) : '<em style="opacity:.5">\u2014</em>'}</td>
             <td class="td-actions">${actionButtons(r.id)}</td>`;
           tableBody.appendChild(tr);
         });
@@ -993,6 +1078,8 @@
             <div class="card-details">
               <div class="card-detail"><strong>Sub-type:</strong> ${escHtml(subTypeLabel(r.toolType, r.subType))}</div>
               <div class="card-detail"><strong>Qty:</strong> ${r.quantity}</div>
+              ${r.brand  ? `<div class="card-detail"><strong>Brand:</strong> ${escHtml(r.brand)}</div>` : ''}
+              ${r.length ? `<div class="card-detail"><strong>Length:</strong> ${escHtml(r.length)}</div>` : ''}
             </div>
             ${r.notes ? `<div class="card-notes">${escHtml(r.notes)}</div>` : ''}`;
           cardList.appendChild(li);
@@ -1030,6 +1117,7 @@
 
     const App = {
       render() {
+        FilterController.updateSubtypeFilter();
         const all      = InventoryDB.getAll();
         const filtered = FilterController.apply(all);
         ListRenderer.render(filtered, all.length);
