@@ -1,0 +1,11 @@
+{
+  "name": "Project Command Center",
+  "short_name": "Command Center",
+  "start_url": "./project-command-center.html",
+  "display": "standalone",
+  "background_color": "#0d0e10",
+  "theme_color": "#0d0e10",
+  "icons": [
+    { "src": "icon-cc.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

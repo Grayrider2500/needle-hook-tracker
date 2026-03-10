@@ -1,8 +1,11 @@
-const CACHE = 'needle-stash-v5';
+const CACHE = 'needle-stash-v6';
 const ASSETS = [
   './needle_tracker.html',
   './manifest.json',
   './icon.svg',
+  './project-command-center.html',
+  './manifest-cc.json',
+  './icon-cc.svg',
 ];
 
 self.addEventListener('install', e => {
