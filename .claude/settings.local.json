@@ -5,7 +5,9 @@
       "Bash(git add CLAUDE.md manifest.json sw.js icon.svg needle_tracker.html)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(brew --version)",
+      "Bash(gh auth:*)"
     ]
   }
 }
