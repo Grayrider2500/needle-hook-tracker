@@ -430,6 +430,110 @@
     .badge--hook   { background: rgba(107,142,107,0.15); color: var(--color-accent-dark); }
     .badge--loan   { background: rgba(192,57,43,0.12);  color: var(--color-danger); }
 
+    /* ── Manage Lists Dialog ─────────────────────────────── */
+    #lists-dialog {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 0;
+      max-width: 480px;
+      width: calc(100% - 2rem);
+      box-shadow: var(--shadow-lg);
+      background: var(--color-surface);
+    }
+    #lists-dialog::backdrop { background: rgba(61,43,31,0.45); }
+    .lists-dialog-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem 0.75rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .lists-dialog-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin: 0;
+    }
+    .lists-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--color-border);
+      overflow-x: auto;
+    }
+    .lists-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .lists-tab:hover  { color: var(--color-primary); transform: none; box-shadow: none; }
+    .lists-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+    .lists-dialog-body {
+      padding: 1rem 1.25rem;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+    .list-items {
+      list-style: none;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      margin-bottom: 0.75rem;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.45rem 0.65rem;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 0.875rem;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item-remove {
+      background: transparent;
+      border: none;
+      color: var(--color-danger);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-family: inherit;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .list-item-remove:hover { background: rgba(192,57,43,0.1); transform: none; box-shadow: none; }
+    .list-add-row { display: flex; gap: 0.5rem; }
+    .list-add-row input {
+      flex: 1;
+      font-size: 16px;
+      font-family: inherit;
+      color: var(--color-text);
+      background: var(--color-surface);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 0.5rem 0.65rem;
+    }
+    .list-add-row input:focus { outline: none; border-color: var(--color-primary); }
+    .lists-dialog-footer {
+      padding: 0.75rem 1.25rem 1rem;
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .lists-hint { font-size: 0.75rem; color: var(--color-text-muted); font-style: italic; }
+
     /* ── Checkbox row ─────────────────────────────────────── */
     .form-row--checkbox {
       flex-direction: row;
@@ -506,19 +610,7 @@
         <div class="form-row">
           <label for="brand">Brand</label>
           <input id="brand" list="datalist-brand" placeholder="e.g. Addi, ChiaoGoo…">
-          <datalist id="datalist-brand">
-            <option>Addi</option>
-            <option>Boye</option>
-            <option>ChiaoGoo</option>
-            <option>Clover</option>
-            <option>Denise</option>
-            <option>HiyaHiya</option>
-            <option>KnitPicks</option>
-            <option>Knitter's Pride</option>
-            <option>Lykke</option>
-            <option>Susan Bates</option>
-            <option>Tulip</option>
-          </datalist>
+          <datalist id="datalist-brand"></datalist>
         </div>
 
         <div class="form-row">
@@ -634,6 +726,26 @@
 
   </main>
 
+  <!-- Manage Lists Dialog -->
+  <dialog id="lists-dialog" aria-labelledby="lists-dialog-title">
+    <div class="lists-dialog-header">
+      <h3 id="lists-dialog-title">Manage Dropdown Lists</h3>
+      <button type="button" class="btn btn--ghost btn--small" id="lists-close-btn">✕ Close</button>
+    </div>
+    <div id="lists-tabs" class="lists-tabs">
+      <button class="lists-tab active" data-lists-tab="needle-sizes">Needle Sizes</button>
+      <button class="lists-tab" data-lists-tab="hook-sizes">Hook Sizes</button>
+      <button class="lists-tab" data-lists-tab="needle-subtypes">Needle Sub-types</button>
+      <button class="lists-tab" data-lists-tab="hook-subtypes">Hook Sub-types</button>
+      <button class="lists-tab" data-lists-tab="brands">Brands</button>
+    </div>
+    <div id="lists-dialog-body" class="lists-dialog-body"></div>
+    <div class="lists-dialog-footer">
+      <span class="lists-hint">Removing an item won't affect existing inventory records.</span>
+      <button type="button" class="btn btn--ghost btn--small" id="lists-reset-btn">Reset to Defaults</button>
+    </div>
+  </dialog>
+
   <!-- Delete Confirmation Modal -->
   <dialog id="confirm-modal" aria-labelledby="modal-title" aria-describedby="modal-desc">
     <h3 id="modal-title">Remove this item?</h3>
@@ -652,7 +764,7 @@
 
     // ── Static Data ────────────────────────────────────────────────────────────
 
-    const SIZES = {
+    const DEFAULT_SIZES = {
       knitting_needle: [
         'US 0 \u2014 2.0mm',
         'US 1 \u2014 2.25mm',
@@ -697,7 +809,7 @@
       ],
     };
 
-    const SUB_TYPES = {
+    const DEFAULT_SUB_TYPES = {
       knitting_needle: [
         { value: 'straight',        label: 'Straight' },
         { value: 'circular',        label: 'Circular' },
@@ -712,6 +824,16 @@
         { value: 'inline',    label: 'Inline' },
       ],
     };
+
+    const DEFAULT_BRANDS = [
+      'Addi', 'Boye', 'ChiaoGoo', 'Clover', 'Denise',
+      'HiyaHiya', 'KnitPicks', "Knitter's Pride", 'Lykke', 'Susan Bates', 'Tulip',
+    ];
+
+    // Mutable — CustomListsDB overwrites these on load
+    let SIZES     = JSON.parse(JSON.stringify(DEFAULT_SIZES));
+    let SUB_TYPES = JSON.parse(JSON.stringify(DEFAULT_SUB_TYPES));
+    let BRANDS    = [...DEFAULT_BRANDS];
 
     const TOOL_LABELS = {
       knitting_needle: 'Knitting Needle',
@@ -796,11 +918,13 @@
         delete(id) {
           save(load().filter(r => r.id !== id));
         },
-        hasDuplicate(toolType, subType, size, excludeId = null) {
+        hasDuplicate(toolType, subType, size, brand = '', excludeId = null) {
+          const b = brand.trim().toLowerCase();
           return load().some(r =>
             r.toolType === toolType &&
             r.subType  === subType  &&
             r.size     === size     &&
+            (r.brand || '').trim().toLowerCase() === b &&
             r.id       !== excludeId
           );
         },
@@ -812,6 +936,205 @@
           const records = Array.isArray(data) ? data : (Array.isArray(data.records) ? data.records : null);
           if (!records) throw new Error('Invalid format');
           save(records);
+        },
+      };
+    })();
+
+    // ── CustomListsDB ──────────────────────────────────────────────────────────
+
+    const CustomListsDB = (() => {
+      const SIZES_KEY    = 'knitting_sizes_v1';
+      const SUBTYPES_KEY = 'knitting_subtypes_v1';
+      const BRANDS_KEY   = 'knitting_brands_v1';
+
+      return {
+        load() {
+          try {
+            const s = localStorage.getItem(SIZES_KEY);
+            if (s) {
+              const p = JSON.parse(s);
+              if (p.knitting_needle) SIZES.knitting_needle = p.knitting_needle;
+              if (p.crochet_hook)    SIZES.crochet_hook    = p.crochet_hook;
+            }
+          } catch (e) { console.error('CustomListsDB: sizes load failed', e); }
+          try {
+            const t = localStorage.getItem(SUBTYPES_KEY);
+            if (t) {
+              const p = JSON.parse(t);
+              if (p.knitting_needle) SUB_TYPES.knitting_needle = p.knitting_needle;
+              if (p.crochet_hook)    SUB_TYPES.crochet_hook    = p.crochet_hook;
+            }
+          } catch (e) { console.error('CustomListsDB: subtypes load failed', e); }
+          try {
+            const b = localStorage.getItem(BRANDS_KEY);
+            if (b) BRANDS = JSON.parse(b);
+          } catch (e) { console.error('CustomListsDB: brands load failed', e); }
+        },
+        saveSizes() {
+          try { localStorage.setItem(SIZES_KEY, JSON.stringify(SIZES)); }
+          catch (e) { console.error('CustomListsDB: sizes save failed', e); }
+        },
+        saveSubTypes() {
+          try { localStorage.setItem(SUBTYPES_KEY, JSON.stringify(SUB_TYPES)); }
+          catch (e) { console.error('CustomListsDB: subtypes save failed', e); }
+        },
+        saveBrands() {
+          try { localStorage.setItem(BRANDS_KEY, JSON.stringify(BRANDS)); }
+          catch (e) { console.error('CustomListsDB: brands save failed', e); }
+        },
+        addSize(toolType, value) {
+          value = value.trim();
+          if (!value || SIZES[toolType].includes(value)) return false;
+          SIZES[toolType] = [...SIZES[toolType], value];
+          this.saveSizes();
+          return true;
+        },
+        deleteSize(toolType, value) {
+          SIZES[toolType] = SIZES[toolType].filter(s => s !== value);
+          this.saveSizes();
+        },
+        addSubType(toolType, label) {
+          label = label.trim();
+          if (!label) return false;
+          if (SUB_TYPES[toolType].some(s => s.label.toLowerCase() === label.toLowerCase())) return false;
+          SUB_TYPES[toolType] = [...SUB_TYPES[toolType], { value: label, label }];
+          this.saveSubTypes();
+          return true;
+        },
+        deleteSubType(toolType, value) {
+          SUB_TYPES[toolType] = SUB_TYPES[toolType].filter(s => s.value !== value);
+          this.saveSubTypes();
+        },
+        addBrand(value) {
+          value = value.trim();
+          if (!value || BRANDS.some(b => b.toLowerCase() === value.toLowerCase())) return false;
+          BRANDS = [...BRANDS, value];
+          this.saveBrands();
+          return true;
+        },
+        deleteBrand(value) {
+          BRANDS = BRANDS.filter(b => b !== value);
+          this.saveBrands();
+        },
+        resetToDefaults() {
+          SIZES.knitting_needle     = [...DEFAULT_SIZES.knitting_needle];
+          SIZES.crochet_hook        = [...DEFAULT_SIZES.crochet_hook];
+          SUB_TYPES.knitting_needle = DEFAULT_SUB_TYPES.knitting_needle.map(s => ({ ...s }));
+          SUB_TYPES.crochet_hook    = DEFAULT_SUB_TYPES.crochet_hook.map(s => ({ ...s }));
+          BRANDS                    = [...DEFAULT_BRANDS];
+          try { localStorage.removeItem(SIZES_KEY); }    catch {}
+          try { localStorage.removeItem(SUBTYPES_KEY); } catch {}
+          try { localStorage.removeItem(BRANDS_KEY); }   catch {}
+        },
+      };
+    })();
+
+    // ── ListEditor ─────────────────────────────────────────────────────────────
+
+    const ListEditor = (() => {
+      const TAB_CONFIG = {
+        'needle-sizes':    { toolType: 'knitting_needle', list: 'sizes',    label: 'Needle Size' },
+        'hook-sizes':      { toolType: 'crochet_hook',    list: 'sizes',    label: 'Hook Size' },
+        'needle-subtypes': { toolType: 'knitting_needle', list: 'subtypes', label: 'Needle Sub-type' },
+        'hook-subtypes':   { toolType: 'crochet_hook',    list: 'subtypes', label: 'Hook Sub-type' },
+        'brands':          { toolType: null,              list: 'brands',   label: 'Brand' },
+      };
+      let currentTab = 'needle-sizes';
+
+      function getItems(tabKey) {
+        const { toolType, list } = TAB_CONFIG[tabKey];
+        if (list === 'brands')   return BRANDS.map(v => ({ value: v, label: v }));
+        if (list === 'sizes')    return SIZES[toolType].map(v => ({ value: v, label: v }));
+        return SUB_TYPES[toolType].map(s => ({ value: s.value, label: s.label }));
+      }
+
+      function renderTab() {
+        const { label } = TAB_CONFIG[currentTab];
+        const items = getItems(currentTab);
+        const body  = document.getElementById('lists-dialog-body');
+
+        const listHTML = items.length
+          ? items.map(it => `
+              <li class="list-item">
+                <span>${escHtml(it.label)}</span>
+                <button type="button" class="list-item-remove" data-remove="${escHtml(it.value)}" aria-label="Remove ${escHtml(it.label)}">✕ Remove</button>
+              </li>`).join('')
+          : `<li class="list-item" style="color:var(--color-text-muted);font-style:italic;">No items — add one below.</li>`;
+
+        body.innerHTML = `
+          <ul class="list-items">${listHTML}</ul>
+          <div class="list-add-row">
+            <input type="text" id="list-new-value" placeholder="New ${escHtml(label.toLowerCase())}…" autocomplete="off">
+            <button type="button" class="btn btn--primary btn--small" id="list-add-btn">Add</button>
+          </div>`;
+
+        document.getElementById('list-new-value').addEventListener('keydown', e => {
+          if (e.key === 'Enter') { e.preventDefault(); handleAdd(); }
+        });
+        document.getElementById('list-add-btn').addEventListener('click', handleAdd);
+        body.querySelectorAll('[data-remove]').forEach(btn => {
+          btn.addEventListener('click', () => handleRemove(btn.dataset.remove));
+        });
+
+        document.querySelectorAll('.lists-tab').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.listsTab === currentTab);
+        });
+      }
+
+      function handleAdd() {
+        const input = document.getElementById('list-new-value');
+        const val   = input.value.trim();
+        if (!val) return;
+        const { toolType, list } = TAB_CONFIG[currentTab];
+        let ok;
+        if (list === 'brands')   ok = CustomListsDB.addBrand(val);
+        else if (list === 'sizes') ok = CustomListsDB.addSize(toolType, val);
+        else                       ok = CustomListsDB.addSubType(toolType, val);
+        if (ok) {
+          input.value = '';
+          renderTab();
+          document.getElementById('list-new-value').focus();
+          if (list === 'brands') App.render(); // refresh brand datalist
+        } else {
+          input.style.borderColor = 'var(--color-danger)';
+          setTimeout(() => { input.style.borderColor = ''; }, 1500);
+        }
+      }
+
+      function handleRemove(value) {
+        const { toolType, list } = TAB_CONFIG[currentTab];
+        if (list === 'brands')   { CustomListsDB.deleteBrand(value); App.render(); }
+        else if (list === 'sizes') CustomListsDB.deleteSize(toolType, value);
+        else                       CustomListsDB.deleteSubType(toolType, value);
+        renderTab();
+      }
+
+      return {
+        init() {
+          document.getElementById('lists-tabs').addEventListener('click', e => {
+            const tab = e.target.closest('.lists-tab');
+            if (!tab) return;
+            currentTab = tab.dataset.listsTab;
+            renderTab();
+          });
+          document.getElementById('lists-close-btn').addEventListener('click', () => {
+            document.getElementById('lists-dialog').close();
+          });
+          document.getElementById('lists-reset-btn').addEventListener('click', () => {
+            if (!confirm('Reset all lists to defaults? Your custom entries will be removed.')) return;
+            CustomListsDB.resetToDefaults();
+            renderTab();
+            Toast.show('Lists reset to defaults');
+          });
+          document.getElementById('lists-dialog').addEventListener('click', e => {
+            if (e.target === document.getElementById('lists-dialog')) {
+              document.getElementById('lists-dialog').close();
+            }
+          });
+        },
+        open() {
+          renderTab();
+          document.getElementById('lists-dialog').showModal();
         },
       };
     })();
@@ -904,7 +1227,10 @@
           dupWarn.style.display = 'none';
           return;
         }
-        const isDup = InventoryDB.hasDuplicate(toolTypeEl.value, subTypeEl.value.trim(), sizeEl.value.trim(), editIdEl.value || null);
+        const isDup = InventoryDB.hasDuplicate(
+          toolTypeEl.value, subTypeEl.value.trim(), sizeEl.value.trim(),
+          brandEl.value.trim(), editIdEl.value || null
+        );
         dupWarn.style.display = isDup ? 'block' : 'none';
       }
 
@@ -956,6 +1282,7 @@
           });
           subTypeEl.addEventListener('input', checkDuplicate);
           sizeEl.addEventListener('input', checkDuplicate);
+          brandEl.addEventListener('input', checkDuplicate);
 
           cancelBtn.addEventListener('click', () => toAddMode());
 
@@ -1169,15 +1496,21 @@
         const filtered = FilterController.apply(all);
         ListRenderer.render(filtered, all.length);
 
-        // Keep brand datalist in sync with any brands already in inventory
+        // Rebuild brand datalist from managed BRANDS list + any brands used in inventory
         const dl = document.getElementById('datalist-brand');
-        const existing = new Set([...dl.options].map(o => o.value.toLowerCase()));
+        dl.innerHTML = '';
+        const brandSet = new Set(BRANDS.map(b => b.toLowerCase()));
+        BRANDS.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b;
+          dl.appendChild(opt);
+        });
         all.forEach(r => {
-          if (r.brand && !existing.has(r.brand.toLowerCase())) {
+          if (r.brand && !brandSet.has(r.brand.toLowerCase())) {
             const opt = document.createElement('option');
             opt.value = r.brand;
             dl.appendChild(opt);
-            existing.add(r.brand.toLowerCase());
+            brandSet.add(r.brand.toLowerCase());
           }
         });
 
@@ -1191,9 +1524,19 @@
       },
 
       init() {
+        CustomListsDB.load();
         InventoryDB.init();
         FormController.init();
         FilterController.init();
+        ListEditor.init();
+
+        // Add "Manage Lists" button to inventory header
+        const manageLists = document.createElement('button');
+        manageLists.type = 'button';
+        manageLists.className = 'btn btn--ghost btn--small';
+        manageLists.textContent = '⚙ Manage Lists';
+        manageLists.addEventListener('click', () => ListEditor.open());
+        document.querySelector('.inventory-header-actions').prepend(manageLists);
 
         // Delete modal
         const modal         = document.getElementById('confirm-modal');
