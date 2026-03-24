@@ -301,42 +301,6 @@
       border-bottom: 1px solid var(--color-border);
       white-space: nowrap;
     }
-    #inventory-table thead th.th-sort-cell {
-      padding: 0;
-      vertical-align: bottom;
-    }
-    .th-sort {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      width: 100%;
-      box-sizing: border-box;
-      font: inherit;
-      font-size: inherit;
-      font-weight: inherit;
-      text-transform: inherit;
-      letter-spacing: inherit;
-      color: inherit;
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      padding: 0.7rem 0.85rem;
-      text-align: left;
-      white-space: nowrap;
-      border-radius: var(--radius);
-    }
-    .th-sort:hover { color: var(--color-text); }
-    .th-sort:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: -2px;
-    }
-    .th-sort-indicator {
-      font-size: 0.65rem;
-      line-height: 1;
-      opacity: 0.4;
-      flex-shrink: 0;
-    }
-    .th-sort[aria-pressed="true"] .th-sort-indicator { opacity: 1; }
     #inventory-table tbody tr { border-bottom: 1px solid var(--color-border); }
     #inventory-table tbody tr:last-child { border-bottom: none; }
     #inventory-table tbody tr:nth-child(even) td { background: var(--color-surface-alt); }
@@ -709,12 +673,6 @@
           <option value="available">Available</option>
         </select>
         <input type="search" id="filter-search" placeholder="Search size, brand, notes…" aria-label="Search">
-        <select id="sort-select" aria-label="Sort inventory">
-          <option value="size-asc">Size (smallest first)</option>
-          <option value="size-desc">Size (largest first)</option>
-          <option value="brand-asc">Brand (A–Z)</option>
-          <option value="brand-desc">Brand (Z–A)</option>
-        </select>
         <button type="button" id="clear-filters-btn" class="btn btn--ghost btn--small">Clear</button>
       </div>
     </section>
@@ -738,16 +696,8 @@
             <tr>
               <th>Type</th>
               <th>Sub-type</th>
-              <th scope="col" class="th-sort-cell">
-                <button type="button" class="th-sort" id="sort-head-size">
-                  Size<span class="th-sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
-              <th scope="col" class="th-sort-cell">
-                <button type="button" class="th-sort" id="sort-head-brand">
-                  Brand<span class="th-sort-indicator" aria-hidden="true"></span>
-                </button>
-              </th>
+              <th>Size</th>
+              <th>Brand</th>
               <th>Length</th>
               <th>Qty</th>
               <th>Status</th>
@@ -908,6 +858,34 @@
     function parseSizeMm(sizeStr) {
       const m = String(sizeStr || '').match(/(\d+(?:\.\d+)?)\s*mm/i);
       return m ? parseFloat(m[1], 10) : NaN;
+    }
+
+    // Stash list order: size smallest → largest, then brand A–Z (blank brand last).
+    function compareSizeSmallestFirst(a, b) {
+      const na = parseSizeMm(a.size);
+      const nb = parseSizeMm(b.size);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      if (!isNaN(na)) return -1;
+      if (!isNaN(nb)) return 1;
+      return String(a.size || '').localeCompare(String(b.size || ''), undefined, { numeric: true });
+    }
+
+    function compareBrandAZ(a, b) {
+      const ba = (a.brand || '').trim().toLowerCase();
+      const bb = (b.brand || '').trim().toLowerCase();
+      if (!ba && !bb) return 0;
+      if (!ba) return 1;
+      if (!bb) return -1;
+      return ba.localeCompare(bb, undefined, { sensitivity: 'base' });
+    }
+
+    function sortInventoryStash(records) {
+      const out = records.slice();
+      out.sort((a, b) => {
+        const c = compareSizeSmallestFirst(a, b);
+        return c !== 0 ? c : compareBrandAZ(a, b);
+      });
+      return out;
     }
 
     // ── InventoryDB ────────────────────────────────────────────────────────────
@@ -1440,148 +1418,6 @@
       };
     })();
 
-    // ── SortController ─────────────────────────────────────────────────────────
-
-    const SortController = (() => {
-      const SORT_STORAGE_KEY = 'needle_sort_v1';
-      const SORT_MODES       = ['size-asc', 'size-desc', 'brand-asc', 'brand-desc'];
-      const sortEl           = document.getElementById('sort-select');
-      const headSizeBtn      = document.getElementById('sort-head-size');
-      const headBrandBtn     = document.getElementById('sort-head-brand');
-
-      function loadPersisted() {
-        try {
-          const v = localStorage.getItem(SORT_STORAGE_KEY);
-          if (v && SORT_MODES.includes(v)) return v;
-        } catch (e) { /* ignore */ }
-        return 'size-asc';
-      }
-
-      function savePersisted(mode) {
-        try {
-          localStorage.setItem(SORT_STORAGE_KEY, mode);
-        } catch (e) { /* ignore */ }
-      }
-
-      function compareBrand(a, b, desc) {
-        const ba = (a.brand || '').trim().toLowerCase();
-        const bb = (b.brand || '').trim().toLowerCase();
-        const aEmpty = !ba;
-        const bEmpty = !bb;
-        if (aEmpty && bEmpty) return 0;
-        if (aEmpty) return 1;
-        if (bEmpty) return -1;
-        const c = ba.localeCompare(bb, undefined, { sensitivity: 'base' });
-        return desc ? -c : c;
-      }
-
-      function compareSize(a, b, desc) {
-        const na = parseSizeMm(a.size);
-        const nb = parseSizeMm(b.size);
-        let c = 0;
-        if (!isNaN(na) && !isNaN(nb)) c = na - nb;
-        else if (!isNaN(na)) c = -1;
-        else if (!isNaN(nb)) c = 1;
-        else {
-          c = String(a.size || '').localeCompare(String(b.size || ''), undefined, { numeric: true });
-        }
-        if (desc) c = -c;
-        return c;
-      }
-
-      function sort(records) {
-        const mode = sortEl.value;
-        const out = records.slice();
-        if (mode === 'size-asc' || mode === 'size-desc') {
-          const desc = mode === 'size-desc';
-          out.sort((a, b) => {
-            const c = compareSize(a, b, desc);
-            return c !== 0 ? c : compareBrand(a, b, false);
-          });
-        } else {
-          const desc = mode === 'brand-desc';
-          out.sort((a, b) => {
-            const c = compareBrand(a, b, desc);
-            return c !== 0 ? c : compareSize(a, b, false);
-          });
-        }
-        return out;
-      }
-
-      function updateHeaderUi() {
-        const mode = sortEl.value;
-        const sizeTh   = headSizeBtn.closest('th');
-        const brandTh  = headBrandBtn.closest('th');
-        const indSize  = headSizeBtn.querySelector('.th-sort-indicator');
-        const indBrand = headBrandBtn.querySelector('.th-sort-indicator');
-
-        headSizeBtn.setAttribute('aria-pressed', mode.startsWith('size') ? 'true' : 'false');
-        headBrandBtn.setAttribute('aria-pressed', mode.startsWith('brand') ? 'true' : 'false');
-
-        sizeTh.removeAttribute('aria-sort');
-        brandTh.removeAttribute('aria-sort');
-        if (mode.startsWith('size')) {
-          sizeTh.setAttribute('aria-sort', mode === 'size-desc' ? 'descending' : 'ascending');
-          indSize.textContent = mode === 'size-desc' ? '\u25BC' : '\u25B2';
-          indBrand.textContent = '';
-          headSizeBtn.setAttribute(
-            'aria-label',
-            mode === 'size-desc'
-              ? 'Sorted by size, largest first. Activate to sort smallest first.'
-              : 'Sorted by size, smallest first. Activate to sort largest first.'
-          );
-          headBrandBtn.setAttribute('aria-label', 'Sort by brand, A to Z');
-        } else {
-          brandTh.setAttribute('aria-sort', mode === 'brand-desc' ? 'descending' : 'ascending');
-          indBrand.textContent = mode === 'brand-desc' ? '\u25BC' : '\u25B2';
-          indSize.textContent = '';
-          headBrandBtn.setAttribute(
-            'aria-label',
-            mode === 'brand-desc'
-              ? 'Sorted by brand, Z to A. Activate to sort A to Z.'
-              : 'Sorted by brand, A to Z. Activate to sort Z to A.'
-          );
-          headSizeBtn.setAttribute('aria-label', 'Sort by size, smallest first');
-        }
-      }
-
-      function applyHeaderClick(column) {
-        const cur = sortEl.value;
-        let next;
-        if (column === 'size') {
-          if (cur === 'size-asc')      next = 'size-desc';
-          else if (cur === 'size-desc') next = 'size-asc';
-          else                         next = 'size-asc';
-        } else {
-          if (cur === 'brand-asc')      next = 'brand-desc';
-          else if (cur === 'brand-desc') next = 'brand-asc';
-          else                          next = 'brand-asc';
-        }
-        sortEl.value = next;
-        savePersisted(next);
-        App.render();
-      }
-
-      return {
-        init() {
-          sortEl.value = loadPersisted();
-          sortEl.addEventListener('change', () => {
-            savePersisted(sortEl.value);
-            App.render();
-          });
-          headSizeBtn.addEventListener('click', () => applyHeaderClick('size'));
-          headBrandBtn.addEventListener('click', () => applyHeaderClick('brand'));
-          window.addEventListener('storage', e => {
-            if (e.key !== SORT_STORAGE_KEY || !e.newValue || !SORT_MODES.includes(e.newValue)) return;
-            sortEl.value = e.newValue;
-            App.render();
-          });
-        },
-        sort,
-        updateHeaderUi,
-      };
-    })();
-
     // ── ListRenderer ───────────────────────────────────────────────────────────
 
     const ListRenderer = (() => {
@@ -1689,10 +1525,9 @@
 
     const App = {
       render() {
-        SortController.updateHeaderUi();
         FilterController.updateSubtypeFilter();
         const all      = InventoryDB.getAll();
-        const filtered = SortController.sort(FilterController.apply(all));
+        const filtered = sortInventoryStash(FilterController.apply(all));
         ListRenderer.render(filtered, all.length);
 
         // Rebuild brand datalist from managed BRANDS list + any brands used in inventory
@@ -1727,7 +1562,6 @@
         InventoryDB.init();
         FormController.init();
         FilterController.init();
-        SortController.init();
         ListEditor.init();
 
         // Add "Manage Lists" button to inventory header
